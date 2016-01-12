@@ -14,8 +14,7 @@
   "author": "Phillip Clark <phillip@flitbit.com>",
   "license": "MIT",
   "scripts": {
-    "pretest": "eslint .",
-    "test": "mocha -R spec"
+    "lint": "eslint ."
   },
   "homepage": "https://github.com/flitbit/mssql-ease",
   "bugs": {
