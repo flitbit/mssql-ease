@@ -1,4 +1,4 @@
-# mssql-ease
+# mssql-ease [![bitHound Overall Score](https://www.bithound.io/github/flitbit/mssql-ease/badges/score.svg)](https://www.bithound.io/github/flitbit/mssql-ease)
 
 Promise style _ease-of-use_ module for working with Microsoft SQL Server from Node.js.
 
