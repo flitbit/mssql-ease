@@ -14,6 +14,8 @@
   "author": "Phillip Clark <phillip@flitbit.com>",
   "license": "MIT",
   "scripts": {
+    "preversion": "npm run lint",
+    "postversion": "git push && git push --tags",
     "lint": "eslint ."
   },
   "homepage": "https://github.com/flitbit/mssql-ease",
