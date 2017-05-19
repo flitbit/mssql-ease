@@ -26,7 +26,7 @@ mssql.create({
           })
           .then(stats => {
             cn.release();
-            util.log(util.inspect(data, false, 9));
+            data.forEach(d => util.log(util.inspect(d, false, 9)));
             util.log(`row count: ${stats.rowCount}, time: ${stats.hrtime[0]}s ${stats.hrtime[1] / 1000000}ms`);
           }));
     })

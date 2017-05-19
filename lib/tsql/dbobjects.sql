@@ -9,6 +9,8 @@ WITH dbobjects ([dbobject]
 	, [precision]
 	, [scale]
 	, [is_nullable]
+	, [is_identity]
+	, [is_computed]
 	, [is_output]
 	, [default_value])
 AS (SELECT t.name AS [dbobject]
@@ -21,6 +23,8 @@ AS (SELECT t.name AS [dbobject]
 	, c.precision
 	, c.scale
 	, c.is_nullable
+    , (CASE c.is_identity WHEN 1 THEN c.is_identity ELSE c.is_rowguidcol END)
+	, c.is_computed
 	, 0
 	, OBJECT_DEFINITION(c.default_object_id)
 FROM sys.tables t
@@ -38,6 +42,8 @@ SELECT t.name AS [dbobject]
 	, c.scale
 	, c.is_nullable
 	, 0
+	, 0
+	, 0
 	, NULL
 FROM sys.views t
 	JOIN sys.columns c ON c.object_id = t.object_id AND t.is_ms_shipped = 0
@@ -53,10 +59,13 @@ SELECT t.name AS [dbobject]
 	, c.precision
 	, c.scale
 	, 1
+	, 0
+	, 0
 	, c.is_output
 	, CONVERT(VARCHAR(4000), c.default_value)
 FROM sys.procedures t
-	JOIN sys.parameters c ON c.object_id = t.object_id AND t.is_ms_shipped = 0
-	JOIN sys.types tt ON c.system_type_id = tt.system_type_id and tt.system_type_id = tt.user_type_id)
+	LEFT OUTER JOIN sys.parameters c ON c.object_id = t.object_id AND t.is_ms_shipped = 0
+	LEFT OUTER JOIN sys.types tt ON c.system_type_id = tt.system_type_id and tt.system_type_id = tt.user_type_id
+WHERE t.is_ms_shipped = 0)
 SELECT * FROM dbobjects
 ORDER BY [schema_name], [dbobject], [column_ordinal]
