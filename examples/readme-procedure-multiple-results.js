@@ -1,5 +1,4 @@
 /*eslint no-console: 0 */
-'use strict';
 
 var mssql = require('../'); // mssql-ease
 

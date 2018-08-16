@@ -1,5 +1,4 @@
 /*eslint no-console: 0 */
-'use strict';
 
 var mssql = require('../'); // mssql-ease
 var config = require('./config-from-env');
@@ -13,7 +12,7 @@ mssql.connect(config)
     }
 
     cn.beginTransaction({ implicitCommit: true })
-      .then(cn => cn.statement('sp_columns @table_name')
+      .then(() => cn.statement('sp_columns @table_name')
         .executeObjects(onEach, (binder, TYPES) => {
           binder.addParameter('table_name', TYPES.NVarChar, '%');
         }, true)
