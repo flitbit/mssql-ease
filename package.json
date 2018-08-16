@@ -31,7 +31,7 @@
     "debug": "~2.6.8",
     "es6-promisify": "^5.0.0",
     "generic-pool": "^3.1.7",
-    "lodash": "^4.17.4",
+    "lodash": "^4.17.10",
     "tedious": "^2.0.0"
   },
   "devDependencies": {
