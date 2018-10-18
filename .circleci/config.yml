@@ -67,6 +67,13 @@ jobs:
     working_directory: ~/repo
     docker:
       - image: circleci/node:8.12.0
+      - image: microsoft/mssql-server-linux:2017-latest
+        ports:
+          - '1433:1433'
+        environment:
+          MSSQL_PID: developer
+          ACCEPT_EULA: Y
+          SA_PASSWORD: my-s00per-pw!
     steps:
       - setup_remote_docker
       - checkout
@@ -82,17 +89,7 @@ jobs:
           key: dependency-cache-{{ checksum "package.json" }}
           paths:
           - ./node_modules
-      - run:
-         name: Install Docker Compose
-         command: |
-           curl -L https://github.com/docker/compose/releases/download/1.19.0/docker-compose-`uname -s`-`uname -m` > ~/docker-compose
-           chmod +x ~/docker-compose
-           sudo mv ~/docker-compose /usr/local/bin/docker-compose
       - run: mkdir ~/junit
-      - run:
-          name: start environment
-          command: npm run devup
-          when: always
       - run:
           name: copy .env
           command: cp .example.env .env
@@ -123,7 +120,7 @@ jobs:
               [ -e "$filename" ] || continue
               DEBUG=mssq* node $filename
             done
-      - run: cp test-results.xml ~/junit/test-results.xml
+      - run: cp test-report.xml ~/junit/test-results.xml
       - store_test_results:
           path: ~/junit
       - store_artifacts:
