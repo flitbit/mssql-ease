@@ -6,7 +6,7 @@ require('../test/config-from-env');
 
 let count = -1;
 function onEach(row) {
-  if (++count < 100) {
+  if (++count < 10) {
     log(JSON.stringify(row, null, '  '));
   }
 }

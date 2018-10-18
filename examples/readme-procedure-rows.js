@@ -7,7 +7,7 @@ require('../test/config-from-env');
 (async () => {
   let rows = 0;
   function onEach(row) {
-    if (++rows < 100) {
+    if (++rows < 10) {
       log(JSON.stringify(row, null, '  '));
     }
   }

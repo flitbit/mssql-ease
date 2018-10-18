@@ -15,7 +15,7 @@ async function action(cn) {
     });
     let count = -1;
     request.on('row', columns => {
-      if (++count < 100) {
+      if (++count < 10) {
         columns.forEach(col => log(`${col.metadata.colName}: ${col.value}
 `));
       }
