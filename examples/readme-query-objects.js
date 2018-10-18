@@ -1,8 +1,3 @@
-<<<<<<< HEAD
-=======
-/*eslint no-console: 0 */
->>>>>>> master
-
 const { log } = require('util');
 const { Connections } = require('../'); // mssql-ease
 
