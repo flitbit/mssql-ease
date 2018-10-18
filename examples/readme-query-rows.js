@@ -4,8 +4,11 @@ const { Connections } = require('../'); // mssql-ease
 
 require('../test/config-from-env');
 
-function each(obj) {
-  log(JSON.stringify(obj, null, '  '));
+let count = -1;
+function onEach(row) {
+  if (++count < 100) {
+    log(JSON.stringify(row, null, '  '));
+  }
 }
 
 (async () => {
@@ -14,7 +17,7 @@ function each(obj) {
   try {
     const cn = await pool.connect(process.env.MSSQL_CONNECTION);
     try {
-      const stats = await cn.queryRows('SELECT * FROM INFORMATION_SCHEMA.COLUMNS', each);
+      const stats = await cn.queryRows('SELECT * FROM INFORMATION_SCHEMA.COLUMNS', onEach);
       log(JSON.stringify(stats, null, '  '));
     } finally {
       await cn.release();

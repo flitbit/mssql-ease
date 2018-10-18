@@ -13,9 +13,12 @@ async function action(cn) {
         resolve();
       }
     });
+    let count = -1;
     request.on('row', columns => {
-      columns.forEach(col => log(`${col.metadata.colName}: ${col.value}
+      if (++count < 100) {
+        columns.forEach(col => log(`${col.metadata.colName}: ${col.value}
 `));
+      }
     });
     // the inner connection is a tedious connection...
     cn.execSql(request);

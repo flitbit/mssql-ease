@@ -57,7 +57,7 @@ jobs:
               [ -e "$filename" ] || continue
               DEBUG=mssq* node $filename
             done
-      - run: cp test-results.xml ~/junit/test-results.xml
+      - run: cp test-report.xml ~/junit/test-results.xml
       - store_test_results:
           path: ~/junit
       - store_artifacts:
