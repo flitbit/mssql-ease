@@ -1,10 +1,18 @@
-# mssql-ease [![bitHound Overall Score](https://www.bithound.io/github/flitbit/mssql-ease/badges/score.svg)](https://www.bithound.io/github/flitbit/mssql-ease)
+# mssql-ease
 
 Promise style _ease-of-use_ module for working with Microsoft SQL Server from Node.js.
 
-`mssql-ease` builds on [`tedious`]() in order to make it easy to work with Microsoft SQL Server databases in Node.js 4+ (ES6). It adds reliable connection pooling via [`generic-pool`](), and implements a few light-weight wrapper classes that implement the _promise style_ and make working with SQL Server easy.
+`mssql-ease` builds on [`tedious`](http://tediousjs.github.io/tedious/index.html) in order to make it easy to work with Microsoft SQL Server databases in Node.js 4+ (ES6). It adds reliable connection pooling via [`generic-pool`](https://github.com/coopernurse/node-pool/tree/72b31a434c7b05ad879b2ace9830a9aa9fbba002), and implements a few light-weight wrapper classes that implement the _promise style_ and make working with SQL Server easy.
 
-> NOTE: This module requires the ES6 features of Node.js, which means either 4+ or the `--harmony` flag in earlier versions. It is only tested in 4+.
+> NOTE: This module requires the ES6 features of Node.js, which means either 8+. It is only tested in 8+.
+
+## Breaking Changes
+
+### v2.0.0 2018-10-18
+
+* Updated to latest tedious and generic-pool libraries.
+* Added `ConnectionString` class and connection string parsing.
+* Changed exports, the main entrypoint is the `Connections` class.
 
 ## Install
 
@@ -14,262 +22,145 @@ npm install --save mssql-ease
 
 ## Quick Start
 
-_examples assume:_
 ```javascript
-var mssql = require('mssql-ease');
+const { Connections } = require('mssql-ease');
+const { log } = require('util');
 
-// See http://pekim.github.io/tedious/api-connection.html
-// for a full list of connection config options.
-var config = {
-  server: '192.0.2.0',
-  database: 'testdb',
-  userName: 'test',
-  password: 'sooperS3cr3t'
-};
+const connections = await Connections.create();
+try {
+  const cn = await connections.connect('mssql://sa:s00per-secr3t@127.0.0.1:1433?database=master&encrypt=true');
+  try {
+    const stats = await cn.queryRows('SELECT * FROM INFORMATION_SCHEMA.COLUMNS', row => {
+      log(JSON.stringify(row, null, '  '));
+    });
+    log(JSON.stringify(stats, null, '  '));
+  } finally {
+    await cn.release();
+  }
+} catch (err) {
+  log(`An unexpected error occurred: ${err.stack || err}`);
+} finally {
+  await connections.drain();
+}
+
 ```
-> NOTE: You __must__ modify these config options so they are appropriate for your database and its configuration.
 
-### Connecting to a Database
-
-```javascript
-mssql.connect(config)
-  .then(cn => {
-    // .. do something with the connection ...
-
-    // always make sure it is released back to the pool...
-    cn.release()
-  })
-```
+The `Connections` class is actually a wrapper for an isolated pool of connections. Each unique connection results in a new connection pool underneath.
 
 ### Ad-hoc Queries
 
 ```javascript
-mssql.connect(config)
-  .then(cn => {
-    // .queryObjects(sql, onEach, release)
-    cn.queryObjects(
-      'SELECT * FROM INFORMATION_SCHEMA.TABLES',
-      // called for each row; prints as JSON
-      (obj) => console.log(JSON.stringify(obj, null, '  ')),
-      // release to the pool after completed
-      true)
-  })
-  .catch(err => console.log(`Unexpected error: ${err}.`))
-  .then(() => mssql.drain());
+const cn = await connections.connect('mssql://sa:s00per-secr3t@127.0.0.1:1433?database=master&encrypt=true');
+try {
+
+  // .queryObjects(sql, onEach, release): stats
+  cn.queryObjects(
+    'SELECT * FROM INFORMATION_SCHEMA.TABLES',
+    // called for each row; prints as JSON
+    (obj) => console.log(JSON.stringify(obj, null, '  '))
+    );
+
+} finally {
+  await cn.release();
+}
 ```
 
 ### Prepared Statements
 
 ```javascript
-mssql.connect(config)
-  .then(cn => {
-    var rows = [];
+const cn = await connections.connect('mssql://sa:s00per-secr3t@127.0.0.1:1433?database=master&encrypt=true');
+try {
+  const rows = [];
 
-    function onEach(row) {
-      rows.push(row);
-    }
+  // .statement(stmt)
+  const stats = cn.statement('sp_columns @table_name')
+    // .executeObjects(onEach, binder, release)
+    .executeObjects(
+      // push each row to our collection...
+      rows.push.bind(rows),
+      // binder(statement, TYPES) is called to bind parameters in the statement
+      (binder, TYPES) => binder.addParameter('table_name', TYPES.NVarChar, '%')
+      );
+  console.log(JSON.stringify(rows, null, '  '));
+  console.log(JSON.stringify(stats, null, '  '));
 
-    // .statement(stmt)
-    cn.statement('sp_columns @table_name')
-      // .executeObjects(onEach, binder, release)
-      .executeObjects(
-        // onEach is called for each row returned by the statement
-        onEach,
-        // binder(statement, TYPES) is called to bind parameters in the statement
-        (binder, TYPES) => binder.addParameter('table_name', TYPES.NVarChar, '%'),
-        // release to the pool after completed
-        true)
-      .then(stats => {
-        console.log(JSON.stringify(rows, null, '  '));
-        console.log(JSON.stringify(stats, null, '  '));
-      });
-  })
-  .catch(err => console.log(`Unexpected error: ${err.message}`))
-  .then(() => mssql.drain());
-
+} finally {
+  await cn.release();
+}
 ```
 
 ### Stored Procedures
 
 ```javascript
-mssql.connect(config)
-  .then(cn => {
-    var rows = [];
+const cn = await connections.connect('mssql://sa:s00per-secr3t@127.0.0.1:1433?database=master&encrypt=true');
+try {
+  const rows = [];
 
-    function onEach(row) {
-      rows.push(row);
-    }
+  // .procedure(sprocName)
+  const stats = cn.procedure('sp_columns')
+    // .executeRows(onEach, binder, release)
+    .executeRows(
+      // push each row to our collection...
+      rows.push.bind(rows),
+      // binder(statement, TYPES) is called to bind parameters
+      (binder, TYPES) => binder.addParameter('table_name', TYPES.NVarChar, '%')
+      );
+  console.log(JSON.stringify(rows, null, '  '));
+  console.log(JSON.stringify(stats, null, '  '));
 
-    // .procedure(sprocName)
-    cn.procedure('sp_columns')
-      // .executeRows(onEach, binder, release)
-      .executeRows(
-        // onEach is called for each row returned by the sproc
-        onEach,
-        // binder(statement, TYPES) is called to bind parameters
-        (binder, TYPES) => binder.addParameter('table_name', TYPES.NVarChar, '%'),
-        // release to the pool after completed
-        true)
-      .then(stats => {
-        console.log(JSON.stringify(rows, null, '  '));
-        console.log(JSON.stringify(stats, null, '  '));
-      });
-  })
-  .catch(err => console.log(`Unexpected error: ${err.message}`))
-  .then(() => mssql.drain());
-
-```
-
-## Use
-
-### Import
-
-```bash
-var mssql = require('mssql-ease');
+} finally {
+  await cn.release();
+}
 ```
 
 ### API
-
-The `mssql-ease` module can be used as a module or as a class.
-
-#### .create(options, useAsSingleton)
-
-Creates an instance of the `Connections` class.
-
-_arguements:_
-* `options` : _object_ &ndash; Specifies options for the underlying connection pool.
-  * `minPooledConnections` : _number_ &ndash; Specifies the minimum number of connections in the connection pool.
-  * `maxPooledConnections` : _number_ &ndash; Specifies the maximum number of connections in the connection pool.
-  * `idleTimoutMillis` : _number_ &ndash; Specifies the number of milliseconds before an idle connection is considered timed out.
-  * `log` : _function_ or _boolean_ &ndash; Specifies either a function used to log messages coming from the connection or a boolean. If `true` then log messages are printed to the console.
-  * `debugListenInfo` : _boolean_ &ndash; Indicates whether info messages occurring on connections should be emitted during debug.
-* `useAsSingleton` : _boolean_ &ndash; Indicate whether the created connection pool should be used as the module's singleton.
-
-_returns:_
-* An ES6 Promise object resolved with a newly created `Connections` upon success.
-
-_example:_
-
-```javascript
-mssql.create({
-  minPooledConnections: 2,
-  maxPooledConnections: 100,
-  idleTimeoutMillis: 5000
-})
-.then(pool => {
-  // .. do something with the pool ...
-
-  // always drain the pool before exiting...
-  pool.drain();
-});
-
-```
-
-#### .connect(config)
-
-Using the module's singleton, connects to the database described by the specified `config` object.
-
-> NOTE: The `config` object is passed _as-is_ to the underlying `tedious` module. See [Tedious' documentation for details](http://pekim.github.io/tedious/api-connection.html).
-
-_arguments:_
-* `config` : _object_ &ndash; Specifies a configuration object describing the database connection.
-
-_returns:_
-* An ES6 Promise object resolved with an instance of `Connection` upon success.
-
-_example:_
-```javascript
-mssql.connect(config)
-  .then(cn => {
-    // .. do something with the connection ...
-
-    // always make sure it is released back to the pool...
-    cn.release()
-  })
-```
-
-#### .drain()
-
-Using the module's singleton, drains the connection pools, closing all connections.
-
-_returns:_
-* An ES6 Promise object resolved upon success.
-
-_example:_
-```javascript
-mssql.drain()
-  .then(() => console.log('The connection pools have been drained!'))
-```
 
 #### Connections Class
 
 The `Connections` class manages one or more connection pools.
 
-##### #constructor(options)
+This is the main entrypoint into the module's capability. You can either construct your own instance or rely on the module as a singleton.
 
-Constructs a new `Connections` instance with the specified `options`.
+##### Static Properties
 
-_arguements:_
-* `options` : _object_ &ndash; Specifies options for the underlying connection pool.
-  * `minPooledConnections` : _number_ &ndash; Specifies the minimum number of connections in the connection pool.
-  * `maxPooledConnections` : _number_ &ndash; Specifies the maximum number of connections in the connection pool.
-  * `idleTimoutMillis` : _number_ &ndash; Specifies the number of milliseconds before an idle connection is considered timed out.
-  * `log` : _function_ or _boolean_ &ndash; Specifies either a function used to log messages coming from the connection or a boolean. If `true` then log messages are printed to the console.
-  * `debugListenInfo` : _boolean_ &ndash; Indicates whether info messages occurring on connections should be emitted during debug.
-* `useAsSingleton` : _boolean_ &ndash; Indicate whether the created connection pool should be used as the module's singleton.
+* `defaultOptions`: an object with the minimal, default connection pool options { evictionRunIntervalMillis: 30000, max: 10 }
+* `create(config, useAsSingleton)`: creates a new instance, optionally using the instance as the module's singleton.
+* `connect(connectionStr)`: creates a new connection, using the module's singleton.
+* `drain()`: drains all connections from all of the singleton's pools.
 
-_returns:_
-* An new `Connections` instance.
+##### Properties
 
-_example:_
+* `connect(connectionStr)`: creates or borrows a connection.
+* `drain()`: drains all connections from all of the pools managed by the instance.
+
+###### #constructor(options)
+
 ```javascript
-var Connections = require('mssql-ease');
-
-var connections = new Connections({
-  minPooledConnections: 0,  // no connections on-hand after idle timeouts
-  maxPooledConnections: 10, // limit each pool to 10 active connections
-  idleTimeoutMillis: 45 * 1000
-});
+const { Connections } = require('mssql-ease');
+const connections = new Connections(Connections.defaultOptions);
 ```
 
-##### .connect(config)
+##### .connect(connectionStr)
 
-Connects to the database described by the specified `config` object.
+Connects to the database described by the specified `connectionStr`, returning a `Promise` that is resolved when the connection is connected and available.
 
-> NOTE: The `config` object is passed _as-is_ to the underlying `tedious` module. See [Tedious' documentation for details](http://pekim.github.io/tedious/api-connection.html).
+* `connectionStr`: either a connection string URL or a `ConnectionString` object.
 
-> NOTE: A new connection pool is created for each unique `config` object used, which may lead to memory pressure if you use a _config-per-user_ strategy. We recommend you use as few unique `config` objects as you can get away with &mdash; well-designed db roles and a _config-per-role_  approach can provide good connection pool performance and good access control without overwhelming memory pressure.
+> NOTE: A new connection pool is created for each unique `connectionStr` used, which may lead to memory pressure if you use a _config-per-user_ strategy. We recommend you use as few unique connection strings as you can get away with &mdash; well-designed db roles and a _config-per-role_  approach can provide good connection pool performance and good access control.
 
-_arguments:_
-* `config` : _object_ &ndash; Specifies a configuration object describing the database connection.
-
-_returns:_
-* An ES6 Promise object resolved with an instance of `Connection` upon success.
-
-_example:_
 ```javascript
-connections.connect(config)
-  .then(cn => new Promise(resolve, reject) {
-      // .. do something with the connection ...
-
-    })
-    .catch(err => console.log(`Unexpected error: ${err}`))
-    // Guarantee the connection is released back to the pool!
-    .then(() => cn.release())
-  })
+const master = await connections.connect('mssql://sa:s00per-secr3t@127.0.0.1:1433?database=master&encrypt=true');
+// or
+const other = await connections.connect(new ConnectionString('mssql://sa:s00per-secr3t@127.0.0.1:1433?database=other&encrypt=true'));
 ```
 
 #### .drain()
 
-Drains the connection pools, closing all connections.
+Drains the connection pools, closing all connections, returning a `Promise` that is resolved when all connections have closed.
 
-_returns:_
-* An ES6 Promise object resolved upon success.
-
-_example:_
 ```javascript
-connections.drain()
-  .then(() => console.log('The connection pools have been drained!'))
+await connections.drain();
+console.log('The connection pools have been drained!');
 ```
 
 #### Connection Class
