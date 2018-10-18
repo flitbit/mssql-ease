@@ -31,12 +31,17 @@ jobs:
           command: npm run devup
           when: always
       - run:
+          name: copy .env
+          command: cp .example.env .env
+          when: always
+      - run:
           name: wait for mssql to respond
           command: |
             COUNTER=0
             while [ $COUNTER -lt 10 ]; do
               let COUNTER=COUNTER+1
               if nc -z 127.0.0.1 1433; then
+                echo mssql listening
                 break;
               fi
               echo waiting for mssql
@@ -84,16 +89,21 @@ jobs:
           command: npm run devup
           when: always
       - run:
+          name: copy .env
+          command: cp .example.env .env
+          when: always
+      - run:
           name: wait for mssql to respond
           command: |
             COUNTER=0
             while [ $COUNTER -lt 10 ]; do
               let COUNTER=COUNTER+1
               if nc -z 127.0.0.1 1433; then
+                echo mssql listening
                 break;
               fi
               echo waiting for mssql
-              sleep 1;
+              sleep 2;
             done;
           when: always
       - run:
