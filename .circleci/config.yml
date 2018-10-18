@@ -40,7 +40,7 @@ jobs:
                 break;
               fi
               echo waiting for mssql
-              sleep 1;
+              sleep 2;
             done;
           when: always
       - run:
