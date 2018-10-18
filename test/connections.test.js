@@ -8,10 +8,16 @@ test('.ctor() succeeds', async () => {
 
 test('.connect(str) succeeds', async () => {
   const cns = new Connections();
-  const cn = await cns.connect(process.env.MSSQL_CONNECTION);
-  expect(cn).toBeDefined();
-  await cn.release();
-  await cns.drain();
+  try {
+    const cn = await cns.connect(process.env.MSSQL_CONNECTION);
+    try {
+      expect(cn).toBeDefined();
+    } finally {
+      await cn.release();
+    }
+  } finally {
+    await cns.drain();
+  }
 });
 
 test('.connect(str) successively connects before prior release', async () => {
@@ -19,6 +25,7 @@ test('.connect(str) successively connects before prior release', async () => {
   try {
     const cn = await cns.connect(process.env.MSSQL_CONNECTION);
     try {
+      expect(cn).toBeDefined();
       const cn2 = await cns.connect(process.env.MSSQL_CONNECTION);
       try {
         expect(cn).not.toEqual(cn2);
