@@ -1,0 +1,147 @@
+version: 2
+jobs:
+  build:
+    working_directory: ~/repo
+    docker:
+      - image: circleci/node:8.12.0
+      - image: microsoft/mssql-server-linux:2017-latest
+        ports:
+          - '1433:1433'
+        environment:
+          MSSQL_PID: developer
+          ACCEPT_EULA: Y
+          SA_PASSWORD: my-s00per-pw!
+    steps:
+      - setup_remote_docker
+      - checkout
+      - run:
+          name: authorize npm
+          command: echo "//registry.npmjs.org/:_authToken=$NPM_TOKEN" >> ~/.npmrc
+      - restore_cache:
+          key: dependency-cache-{{ checksum "package.json" }}
+      - run:
+          name: run npm install
+          command: npm install
+      - save_cache:
+          key: dependency-cache-{{ checksum "package.json" }}
+          paths:
+          - ./node_modules
+      - run: mkdir ~/junit
+      - run:
+          name: copy .env
+          command: cp .example.env .env
+          when: always
+      - run:
+          name: wait for mssql to respond
+          command: |
+            COUNTER=0
+            while [ $COUNTER -lt 10 ]; do
+              let COUNTER=COUNTER+1
+              if nc -z 127.0.0.1 1433; then
+                echo mssql listening
+                break;
+              fi
+              echo waiting for mssql
+              sleep 2;
+            done;
+          when: always
+      - run:
+          name: build & test
+          command: npm run ci
+          when: always
+      - run:
+          name: run all examples
+          command: |
+            set -ex
+            for filename in examples/*.js; do
+              [ -e "$filename" ] || continue
+              DEBUG=mssq* node $filename
+            done
+      - run: cp test-report.xml ~/junit/test-results.xml
+      - store_test_results:
+          path: ~/junit
+      - store_artifacts:
+          path: ~/junit
+
+  build_deploy_npm:
+    working_directory: ~/repo
+    docker:
+      - image: circleci/node:8.12.0
+    steps:
+      - setup_remote_docker
+      - checkout
+      - run:
+          name: authorize npm
+          command: echo "//registry.npmjs.org/:_authToken=$NPM_TOKEN" >> ~/.npmrc
+      - restore_cache:
+          key: dependency-cache-{{ checksum "package.json" }}
+      - run:
+          name: run npm install
+          command: npm install
+      - save_cache:
+          key: dependency-cache-{{ checksum "package.json" }}
+          paths:
+          - ./node_modules
+      - run:
+         name: Install Docker Compose
+         command: |
+           curl -L https://github.com/docker/compose/releases/download/1.19.0/docker-compose-`uname -s`-`uname -m` > ~/docker-compose
+           chmod +x ~/docker-compose
+           sudo mv ~/docker-compose /usr/local/bin/docker-compose
+      - run: mkdir ~/junit
+      - run:
+          name: start environment
+          command: npm run devup
+          when: always
+      - run:
+          name: copy .env
+          command: cp .example.env .env
+          when: always
+      - run:
+          name: wait for mssql to respond
+          command: |
+            COUNTER=0
+            while [ $COUNTER -lt 10 ]; do
+              let COUNTER=COUNTER+1
+              if nc -z 127.0.0.1 1433; then
+                echo mssql listening
+                break;
+              fi
+              echo waiting for mssql
+              sleep 2;
+            done;
+          when: always
+      - run:
+          name: build & test
+          command: npm run ci
+          when: always
+      - run:
+          name: run all examples
+          command: |
+            set -ex
+            for filename in examples/*.js; do
+              [ -e "$filename" ] || continue
+              DEBUG=mssq* node $filename
+            done
+      - run: cp test-results.xml ~/junit/test-results.xml
+      - store_test_results:
+          path: ~/junit
+      - store_artifacts:
+          path: ~/junit
+      - run:
+          name: publish package to npm
+          command: npm publish
+
+workflows:
+  version: 2
+  build_deploy:
+    jobs:
+      - build:
+          context: secrets
+      - build_deploy_npm:
+          context: secrets
+          filters:
+            tags:
+              only: /.*/
+            branches:
+              ignore: /.*/

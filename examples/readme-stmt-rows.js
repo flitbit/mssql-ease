@@ -1,20 +1,32 @@
-/*eslint no-console: 0 */
 
-var mssql = require('../'); // mssql-ease
-var config = require('./config-from-env');
+const { log } = require('util');
+const { Connections } = require('../'); // mssql-ease
 
-mssql.connect(config)
-  .then(cn => {
+require('../test/config-from-env');
 
-    function onEach(row) {
-      console.log(JSON.stringify(row, null, '  '));
+let count = -1;
+function onEach(row) {
+  if (++count < 10) {
+    log(JSON.stringify(row, null, '  '));
+  }
+}
+
+(async () => {
+  const pool = await Connections.create();
+  try {
+    const cn = await pool.connect(process.env.MSSQL_CONNECTION);
+    try {
+      const stats = await cn.statement('sp_columns @table_name')
+        .executeRows(onEach, (binder, TYPES) => {
+          binder.addParameter('table_name', TYPES.VarChar, '%');
+        });
+      log(JSON.stringify(stats, null, '  '));
+    } finally {
+      await cn.release();
     }
-
-    cn.statement('sp_columns @table_name')
-      .executeRows(onEach, (binder, TYPES) => {
-        binder.addParameter('table_name', TYPES.VarChar, '%');
-      }, true)
-    .then(stats => console.log(JSON.stringify(stats, null, '  ')));
-  })
-  .catch(err => console.log(`Unexpected error: ${err.message}`))
-  .then(() => mssql.drain());
+  } catch (err) {
+    log(`An unexpected error occurred: ${err.stack || err}`);
+  } finally {
+    await pool.drain();
+  }
+})();

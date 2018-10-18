@@ -1,29 +1,42 @@
-/*eslint no-console: 0 */
+const { log } = require('util');
+const { tds, Connections } = require('../'); // mssql-ease
 
-var mssql = require('../'); // mssql-ease
-var config = require('./config-from-env');
+require('../test/config-from-env');
 
-mssql.connect(config)
-  .then(connection => {
-    // connection has some worthwhile convenience methods...
-    connection.run(
-        cn => new Promise((resolve, reject) => {
-          // the inner connection is a tedious connection...
-          let request = new mssql.tds.Request('SELECT * FROM INFORMATION_SCHEMA.TABLES', (err) => {
-            if (err) {
-              reject(err);
-            } else {
-              resolve();
-            }
-          });
-          request.on('row', columns => {
-            columns.forEach(col => console.log(`${col.metadata.colName}: ${col.value}`));
-            console.log();
-          });
-          cn.execSql(request);
-        }))
-      .catch(err => console.log(`Unexpected error: ${err}.`))
-      .then(() => connection.release());
-  })
-  .catch(err => console.log(`Unexpected error: ${err}.`))
-  .then(() => mssql.drain());
+async function action(cn) {
+  await new Promise((resolve, reject) => {
+    let request = new tds.Request('SELECT * FROM INFORMATION_SCHEMA.TABLES', (err) => {
+      if (err) {
+        reject(err);
+      } else {
+        resolve();
+      }
+    });
+    let count = -1;
+    request.on('row', columns => {
+      if (++count < 10) {
+        columns.forEach(col => log(`${col.metadata.colName}: ${col.value}
+`));
+      }
+    });
+    // the inner connection is a tedious connection...
+    cn.execSql(request);
+  });
+}
+
+(async () => {
+  const pool = await Connections.create();
+  try {
+    const cn = await pool.connect(process.env.MSSQL_CONNECTION);
+    try {
+      const stats = await cn.run(action);
+      log(JSON.stringify(stats, null, '  '));
+    } finally {
+      await cn.release();
+    }
+  } catch (err) {
+    log(`An unexpected error occurred: ${err.stack || err}`);
+  } finally {
+    await pool.drain();
+  }
+})();

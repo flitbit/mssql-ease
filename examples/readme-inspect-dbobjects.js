@@ -1,34 +1,31 @@
-/*eslint no-console: 0 */
 
-var path = require('path');
-var util = require('util');
+const path = require('path');
+const util = require('util');
 
-var mssql = require('../'); // mssql-ease
-var xutil = require('../lib/xutil');
+const { Connections } = require('../'); // mssql-ease
+const xutil = require('../lib/xutil');
 
-var config = require('./config-from-env');
+require('../test/config-from-env');
 
-mssql.create({
-  minPooledConnections: 2,
-  maxPooledConnections: 100,
-  idleTimeoutMillis: 5000
-}, true)
-.then(pool => {
-  pool.connect(config)
-    .then(cn => {
-      let sqlFile = path.normalize(path.join(__dirname, '../lib/tsql/dbobjects.sql'));
-      let data = [];
-      return xutil.loadFile(sqlFile, 'utf8')
-        .then(query =>
-          cn.queryObjects(query, (obj) => {
-            data.push(obj);
-          })
-          .then(stats => {
-            cn.release();
-            data.forEach(d => util.log(util.inspect(d, false, 9)));
-            util.log(`row count: ${stats.rowCount}, time: ${stats.hrtime[0]}s ${stats.hrtime[1] / 1000000}ms`);
-          }));
-    })
-    .catch(err => util.log(util.inspect(err, false, 9)))
-    .then(() => pool.drain());
-});
+(async () => {
+  const pool = await Connections.create();
+  try {
+    const cn = await pool.connect(process.env.MSSQL_CONNECTION);
+    try {
+      const sqlFile = path.normalize(path.join(__dirname, '../lib/tsql/dbobjects.sql'));
+      const data = [];
+      const query = await xutil.loadFile(sqlFile, 'utf8');
+      const stats = await cn.queryObjects(query, (obj) => {
+        data.push(obj);
+      });
+      data.forEach(d => util.log(util.inspect(d, false, 9)));
+      util.log(`row count: ${stats.rowCount}, time: ${stats.hrtime[0]}s ${stats.hrtime[1] / 1000000}ms`);
+    } finally {
+      await cn.release();
+    }
+  } catch (err) {
+    util.log(util.inspect(err, false, 9));
+  } finally {
+    await pool.drain();
+  }
+})();

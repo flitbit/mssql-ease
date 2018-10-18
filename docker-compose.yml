@@ -1,0 +1,12 @@
+version: '3.5'
+
+services:
+
+  sqlserver:
+    image: microsoft/mssql-server-linux:2017-latest
+    environment:
+      - MSSQL_PID=developer
+      - ACCEPT_EULA=Y
+      - SA_PASSWORD=my-s00per-pw!
+    ports:
+     - '1433:1433'

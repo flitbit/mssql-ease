@@ -1,26 +1,31 @@
-/*eslint no-console: 0 */
 
-var mssql = require('../'); // mssql-ease
-var config = require('./config-from-env');
+const { log } = require('util');
+const { Connections } = require('../'); // mssql-ease
 
-mssql.connect(config)
-  .then(cn => {
-    var rows = [];
+require('../test/config-from-env');
 
-    function onEach(row) {
-      rows.push(row);
-    }
+function onEach(row) {
+  log(JSON.stringify(row, null, '  '));
+}
 
-    cn.statement(`SELECT *
+(async () => {
+  const pool = await Connections.create();
+  try {
+    const cn = await pool.connect(process.env.MSSQL_CONNECTION);
+    try {
+      const stats = await cn.statement(`SELECT *
 FROM INFORMATION_SCHEMA.COLUMNS
 WHERE TABLE_NAME LIKE @table_name`)
-      .executeObjects(onEach, (binder, TYPES) => {
-        binder.addParameter('table_name', TYPES.NVarChar, 'S%');
-      }, true)
-      .then(stats => {
-        console.log(JSON.stringify(rows, null, '  '));
-        console.log(JSON.stringify(stats, null, '  '));
-      });
-  })
-  .catch(err => console.log(`Unexpected error: ${err}`))
-  .then(() => mssql.drain());
+        .executeObjects(onEach, (binder, TYPES) => {
+          binder.addParameter('table_name', TYPES.NVarChar, 'S%');
+        });
+      log(JSON.stringify(stats, null, '  '));
+    } finally {
+      await cn.release();
+    }
+  } catch (err) {
+    log(`An unexpected error occurred: ${err.stack || err}`);
+  } finally {
+    await pool.drain();
+  }
+})();
