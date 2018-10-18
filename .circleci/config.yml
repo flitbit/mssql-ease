@@ -27,6 +27,23 @@ jobs:
             sudo mv ~/docker-compose /usr/local/bin/docker-compose
       - run: mkdir ~/junit
       - run:
+          name: start environment
+          command: npm run devup
+          when: always
+      - run:
+          name: wait for mssql to respond
+          command: |
+            COUNTER=0
+            while [ $COUNTER -lt 10 ]; do
+              let COUNTER=COUNTER+1
+              if nc -z 127.0.0.1 1433; then
+                break;
+              fi
+              echo waiting for mssql
+              sleep 1;
+            done;
+          when: always
+      - run:
           name: build & test
           command: npm run ci
           when: always
@@ -62,6 +79,23 @@ jobs:
            chmod +x ~/docker-compose
            sudo mv ~/docker-compose /usr/local/bin/docker-compose
       - run: mkdir ~/junit
+      - run:
+          name: start environment
+          command: npm run devup
+          when: always
+      - run:
+          name: wait for mssql to respond
+          command: |
+            COUNTER=0
+            while [ $COUNTER -lt 10 ]; do
+              let COUNTER=COUNTER+1
+              if nc -z 127.0.0.1 1433; then
+                break;
+              fi
+              echo waiting for mssql
+              sleep 1;
+            done;
+          when: always
       - run:
           name: build & test
           command: npm run ci
