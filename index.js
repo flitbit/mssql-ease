@@ -1,1 +1,1 @@
-module.exports = require('./lib/Connections');
+module.exports = require('./lib');

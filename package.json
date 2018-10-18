@@ -14,9 +14,16 @@
   "author": "Phillip Clark <phillip@flitbit.com>",
   "license": "MIT",
   "scripts": {
-    "preversion": "npm run lint",
+    "preversion": "npm run test",
     "postversion": "git push && git push --tags",
-    "lint": "eslint ."
+    "devup": "docker-compose up -d",
+    "devdown": "docker-compose down --volumes",
+    "pretest": "npm run lint && npm run devup",
+    "test": "jest --env=node --runInBand --detectOpenHandles",
+    "test:watch": "nodemon --ext js,json,yml --exec \"npm test\"",
+    "preci": "npm run lint",
+    "ci": "jest --env=node --runInBand",
+    "lint": "eslint lib test index.js"
   },
   "homepage": "https://github.com/flitbit/mssql-ease",
   "bugs": {
@@ -35,9 +42,25 @@
   },
   "devDependencies": {
     "dotenv": "^6.1.0",
-    "eslint": "^5.7.0"
+    "eslint": "^5.7.0",
+    "eslint-plugin-jest": "^21.25.1",
+    "jest": "^23.6.0",
+    "jest-junit-reporter": "^1.1.0",
+    "nodemon": "^1.18.4"
   },
   "engines": {
     "node": ">=8.0"
+  },
+  "jest": {
+    "testEnvironment": "node",
+    "testResultsProcessor": "./node_modules/jest-junit-reporter",
+    "verbose": true,
+    "collectCoverage": true,
+    "coverageDirectory": ".coverage",
+    "collectCoverageFrom": [
+      "**/*.{js,jsx}",
+      "!**/node_modules/**",
+      "!**/examples/**"
+    ]
   }
 }

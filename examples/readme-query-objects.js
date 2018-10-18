@@ -1,17 +1,27 @@
-/*eslint no-console: 0 */
-'use strict';
 
-var mssql = require('../'); // mssql-ease
-var config = require('./config-from-env');
+const { log } = require('util');
+const { Connections } = require('../'); // mssql-ease
+
+require('../test/config-from-env');
 
 function each(obj) {
-  console.log(JSON.stringify(obj, null, '  '));
+  log(JSON.stringify(obj, null, '  '));
 }
 
-mssql.connect(config)
-  .then(cn => {
-    cn.queryObjects('SELECT * FROM INFORMATION_SCHEMA.TABLES', each, true)
-      .then(stats => console.log(JSON.stringify(stats, null, '  ')));
-  })
-  .catch(err => console.log(`Unexpected error: ${err}`))
-  .then(() => mssql.drain());
+(async () => {
+
+  const pool = await Connections.create();
+  try {
+    const cn = await pool.connect(process.env.MSSQL_CONNECTION);
+    try {
+      const stats = await cn.queryObjects('SELECT * FROM INFORMATION_SCHEMA.TABLES', each);
+      log(JSON.stringify(stats, null, '  '));
+    } finally {
+      await cn.release();
+    }
+  } catch (err) {
+    log(`An unexpected error occurred: ${err.stack || err}`);
+  } finally {
+    await pool.drain();
+  }
+})();
