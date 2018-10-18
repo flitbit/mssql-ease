@@ -1,3 +1,7 @@
+<<<<<<< HEAD
+=======
+/*eslint no-console: 0 */
+>>>>>>> master
 
 const { log } = require('util');
 const { Connections } = require('../'); // mssql-ease
@@ -11,6 +15,7 @@ function onEach(row) {
   }
 }
 
+<<<<<<< HEAD
 (async () => {
   const pool = await Connections.create();
   try {
@@ -31,3 +36,17 @@ function onEach(row) {
     await pool.drain();
   }
 })();
+=======
+    cn.beginTransaction({ implicitCommit: true })
+      .then(() => cn.statement('sp_columns @table_name')
+        .executeObjects(onEach, (binder, TYPES) => {
+          binder.addParameter('table_name', TYPES.NVarChar, '%');
+        }, true)
+        .then(stats => {
+          // console.log(JSON.stringify(rows, null, '  '));
+          console.log(JSON.stringify(stats, null, '  '));
+        }));
+  })
+  .catch(err => console.log(`Unexpected error: ${err.message}`))
+  .then(() => mssql.drain());
+>>>>>>> master
