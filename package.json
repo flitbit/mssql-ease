@@ -22,7 +22,7 @@
     "test": "jest --env=node --runInBand --detectOpenHandles",
     "test:watch": "nodemon --ext js,json,yml --exec \"npm test\"",
     "preci": "npm run lint",
-    "ci": "jest --env=node --runInBand",
+    "ci": "npm run test",
     "lint": "eslint lib test index.js"
   },
   "homepage": "https://github.com/flitbit/mssql-ease",
