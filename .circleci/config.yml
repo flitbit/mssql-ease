@@ -28,10 +28,6 @@ jobs:
           - ./node_modules
       - run: mkdir ~/junit
       - run:
-          name: start environment
-          command: npm run devup
-          when: always
-      - run:
           name: copy .env
           command: cp .example.env .env
           when: always
