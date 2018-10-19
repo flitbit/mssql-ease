@@ -515,6 +515,8 @@ connection.procedure('sp_depends')
 ## History
 
 **2016-01-12** Initial v0.9.0, consider it a pretty complete alpha.
+**2017-05-30** v1.0.0
+**2018-10-18** v2.0.0 improved connection pooling, support for connection strings, better promises by using async-await (WIP).
 
 ## License
 
