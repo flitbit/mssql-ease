@@ -1,0 +1,13 @@
+
+CREATE TABLE Affiliations
+(
+  id INT IDENTITY NOT NULL
+    CONSTRAINT PK_Affiliations_id PRIMARY KEY,
+  prize INT NOT NULL
+    CONSTRAINT FK_Affiliations_prize
+      FOREIGN KEY REFERENCES Prizes(id)
+      ON DELETE CASCADE,
+  name NVARCHAR(60) NOT NULL,
+  city NVARCHAR(60) NOT NULL,
+  country NVARCHAR(60) NOT NULL,
+)

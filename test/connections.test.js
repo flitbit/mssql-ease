@@ -18,7 +18,7 @@ test('.connect(str) succeeds', async () => {
   } finally {
     await cns.drain();
   }
-});
+}, 30000);
 
 test('.connect(str) successively connects before prior release', async () => {
   const cns = new Connections();
