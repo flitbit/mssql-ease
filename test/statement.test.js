@@ -2,7 +2,7 @@ require('./config-from-env');
 const { Connections } = require('../');
 const fs = require('fs');
 const path = require('path');
-const { promisify } = require('util');
+const { log, inspect, promisify } = require('util');
 
 const readdir = promisify(fs.readdir);
 const readFile = promisify(fs.readFile);
@@ -43,28 +43,33 @@ async function safeExec(connect, action) {
 
 async function createLaureates(cn) {
   let i = -1;
-  const len = 1; //laureates.length;
+  const len = laureates.length;
   while (++i < len) {
     const data = laureates[i];
-    await cn.statement(`INSERT INTO
+    try {
+      await cn.statement(`INSERT INTO
       Laureates(id, firstName, surname, born, died, bornCountry, bornCity, diedCountry, diedCountryCode, diedCity, gender)
       values(@id, @firstName, @surname, @born, @died, @bornCountry, @bornCity, @diedCountry, @diedCountryCode, @diedCity, @gender);
       `).execute(
-      (binder, TYPES) => {
-        binder.addParameter('id', TYPES.Int, data.id);
-        binder.addParameter('firstName', TYPES.NVarChar, data.firstname);
-        binder.addParameter('surname', TYPES.NVarChar, data.surname);
-        binder.addParameter('born', TYPES.Date, data.born);
-        binder.addParameter('died', TYPES.Date, data.died);
-        binder.addParameter('bornCountry', TYPES.NVarChar, data.bornCountry);
-        binder.addParameter('bornCity', TYPES.NVarChar, data.bornCity);
-        binder.addParameter('diedCountry', TYPES.NVarChar, data.diedCountry);
-        binder.addParameter('diedCountryCode', TYPES.NVarChar, data.diedCountryCode);
-        binder.addParameter('diedCity', TYPES.NVarChar, data.diedCity);
-        binder.addParameter('gender', TYPES.NVarChar, data.gender);
-      });
-
+        (binder, TYPES) => {
+          binder.addParameter('id', TYPES.Int, data.id);
+          binder.addParameter('firstName', TYPES.NVarChar, data.firstname);
+          binder.addParameter('surname', TYPES.NVarChar, data.surname);
+          binder.addParameter('born', TYPES.Date, (data.born !== '0000-00-00') ? data.born : null);
+          binder.addParameter('died', TYPES.Date, (data.died !== '0000-00-00') ? data.died : null);
+          binder.addParameter('bornCountry', TYPES.NVarChar, data.bornCountry);
+          binder.addParameter('bornCity', TYPES.NVarChar, data.bornCity);
+          binder.addParameter('diedCountry', TYPES.NVarChar, data.diedCountry);
+          binder.addParameter('diedCountryCode', TYPES.NVarChar, data.diedCountryCode);
+          binder.addParameter('diedCity', TYPES.NVarChar, data.diedCity);
+          binder.addParameter('gender', TYPES.NVarChar, data.gender);
+        });
+    } catch (err) {
+      log(inspect(data));
+      return Promise.reject(err);
+    }
   }
+  return undefined;
 }
 
 beforeAll(async (done) => {
@@ -80,8 +85,7 @@ beforeAll(async (done) => {
 
 afterAll(async done => {
   try {
-    await safeExec(connector, cn =>
-      executeAllScriptsInDir(cn, path.resolve(__dirname, './sql/after')));
+    // await safeExec(connector, cn => executeAllScriptsInDir(cn, path.resolve(__dirname, './sql/after')));
   } catch (err) {
     done(err);
   } finally {
