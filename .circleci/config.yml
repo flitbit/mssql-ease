@@ -3,10 +3,10 @@ jobs:
   build:
     working_directory: ~/repo
     docker:
-      - image: circleci/node:8.12.0
+      - image: circleci/node:10
       - image: microsoft/mssql-server-linux:2017-latest
         ports:
-          - '1433:1433'
+          - "1433:1433"
         environment:
           MSSQL_PID: developer
           ACCEPT_EULA: Y
@@ -25,7 +25,7 @@ jobs:
       - save_cache:
           key: dependency-cache-{{ checksum "package.json" }}
           paths:
-          - ./node_modules
+            - ./node_modules
       - run: mkdir ~/junit
       - run:
           name: copy .env
@@ -66,10 +66,10 @@ jobs:
   build_deploy_npm:
     working_directory: ~/repo
     docker:
-      - image: circleci/node:8.12.0
+      - image: circleci/node:10
       - image: microsoft/mssql-server-linux:2017-latest
         ports:
-          - '1433:1433'
+          - "1433:1433"
         environment:
           MSSQL_PID: developer
           ACCEPT_EULA: Y
@@ -88,7 +88,7 @@ jobs:
       - save_cache:
           key: dependency-cache-{{ checksum "package.json" }}
           paths:
-          - ./node_modules
+            - ./node_modules
       - run: mkdir ~/junit
       - run:
           name: copy .env
