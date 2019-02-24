@@ -1,8 +1,13 @@
 require('./config-from-env');
+
 const { Connections } = require('../lib/connections');
 
 test('.ctor() succeeds', async () => {
   const ctor = new Connections();
+  ctor.on('connection-error', e => {
+    // eslint-disable-next-line
+    console.log(`Unexpected connection error: ${e.stack || e}`);
+  });
   expect(ctor).toBeDefined();
 });
 

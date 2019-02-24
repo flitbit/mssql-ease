@@ -42,8 +42,6 @@
       "env": {
         "debug": "mssql*"
       },
-      "console": "integratedTerminal",
-      "internalConsoleOptions": "neverOpen",
       "windows": {
         "program": "${workspaceFolder}/node_modules/jest/bin/jest",
       }
@@ -56,9 +54,6 @@
       "args": [
         "${relativeFile}"
       ],
-      "env": {
-        "debug": "mssql*"
-      },
       "console": "integratedTerminal",
       "internalConsoleOptions": "neverOpen",
       "windows": {

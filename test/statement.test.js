@@ -55,8 +55,8 @@ async function createLaureates(cn) {
           binder.addParameter('id', TYPES.Int, data.id);
           binder.addParameter('firstName', TYPES.NVarChar, data.firstname);
           binder.addParameter('surname', TYPES.NVarChar, data.surname);
-          binder.addParameter('born', TYPES.Date, (data.born !== '0000-00-00') ? data.born : null);
-          binder.addParameter('died', TYPES.Date, (data.died !== '0000-00-00') ? data.died : null);
+          binder.addParameter('born', TYPES.NVarChar, data.born);
+          binder.addParameter('died', TYPES.NVarChar, data.died);
           binder.addParameter('bornCountry', TYPES.NVarChar, data.bornCountry);
           binder.addParameter('bornCity', TYPES.NVarChar, data.bornCity);
           binder.addParameter('diedCountry', TYPES.NVarChar, data.diedCountry);
@@ -85,7 +85,7 @@ beforeAll(async (done) => {
 
 afterAll(async done => {
   try {
-    // await safeExec(connector, cn => executeAllScriptsInDir(cn, path.resolve(__dirname, './sql/after')));
+    await safeExec(connector, cn => executeAllScriptsInDir(cn, path.resolve(__dirname, './sql/after')));
   } catch (err) {
     done(err);
   } finally {

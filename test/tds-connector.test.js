@@ -7,7 +7,7 @@ test('.ctor() throws when no args specified', async () => {
     const ctor = new TdsConnector();
     expect(ctor).toBeUndefined();
   } catch (err) {
-    expect(err.message).toMatch('options (string | object) is required');
+    expect(err.message).toMatch('config (string | object) is required');
   }
 });
 

@@ -3,10 +3,10 @@ CREATE TABLE Laureates
 (
   id INT NOT NULL
     CONSTRAINT PK_Laureate_id PRIMARY KEY,
-  firstName NVARCHAR(200) NOT NULL,
+  firstName NVARCHAR(200),
   surname NVARCHAR(60),
-  born DATE,
-  died DATE,
+  born NVARCHAR(10),
+  died NVARCHAR(10),
   bornCountry NVARCHAR(60),
   bornCity NVARCHAR(60),
   diedCountry NVARCHAR(60),
